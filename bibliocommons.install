@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * Implements hook_uninstall().
+ */
+function bibliocommons_uninstall() {
+  drupal_uninstall_schema('bibliocommons');
+}
+
+/**
+ * Implements hook_schema().
+ */
+function bibliocommons_schema() {
+  $schema = array();
+  $schema['cache_bibliocommons'] = drupal_get_schema_unprocessed('system', 'cache');
+  return $schema;
+}

@@ -1,0 +1,30 @@
+name = BiblioCommons
+description = Views backend for BiblioCommons RESTful API.
+core = 7.x
+
+package = BiblioCommons
+
+dependencies[] = views
+dependencies[] = opac_wrapper
+
+files[] = bibliocommons.module
+files[] = bibliocommons.api.inc
+files[] = bibliocommons.views.inc
+files[] = bibliocommons.views_default.inc
+; plugins
+files[] = plugins/bibliocommons_views_plugin_query.inc
+; handlers
+files[] = handlers/bibliocommons_field_text.inc
+files[] = handlers/bibliocommons_field_authors.inc
+files[] = handlers/bibliocommons_field_titles_authors.inc
+files[] = handlers/bibliocommons_field_book_jacket.inc
+files[] = handlers/bibliocommons_field_details_url.inc
+files[] = handlers/bibliocommons_field_numeric.inc
+files[] = handlers/bibliocommons_filter_text.inc
+files[] = handlers/bibliocommons_relationship.inc
+files[] = handlers/bibliocommons_sort.inc
+files[] = handlers/bibliocommons_argument_text.inc
+files[] = handlers/bibliocommons_argument_entity_id.inc
+; templates
+files[] = templates/views-view--list.tpl.php
+files[] = templates/views-view-fields--list.tpl.php

@@ -1,0 +1,168 @@
+<?php
+
+/**
+ * Implements hook_help()
+ */
+function bibliocommons_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#bibliocommons':
+      return '<p>'.t('Provide access to BiblioCommons RESTful API.').'</p>';
+      break;
+  }
+}
+
+/** 
+ * Implements hook_menu()
+ */
+function bibliocommons_menu() {
+  $items = array();
+
+  $items['admin/config/content/bibliocommons'] = array(
+    'title'            => 'BiblioCommons',
+    'description'      => 'Configuration for BiblioCommons modules',
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('bibliocommons_form'),
+    'access arguments' => array('access administration pages'),
+    'type'             => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * Page callback: Current BiblioCommons settings
+ *
+ * @see bibliocommons_menu()
+ */
+function bibliocommons_form($form, &$form_state) {
+  $form['bibliocommons_api_url'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('BiblioCommons API URL'),
+    '#default_value' => variable_get('bibliocommons_api_url', 'https://api.bibliocommons.com/v1/'),
+    '#size'          => 256,
+    '#maxlength'     => 1024,
+    '#description'   => t('The URL... to the... BiblioCommons... API!'),
+    '#required'      => TRUE,
+  );
+
+  $form['bibliocommons_api_key'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('BiblioCommons API Key'),
+    '#default_value' => variable_get('bibliocommons_api_key', ''),
+    '#size'          => 256,
+    '#maxlength'     => 1024,
+    '#description'   => t('The BiblioCommons API Mashery Key.'),
+    '#required'      => TRUE,
+  );
+
+   $form['bibliocommons_allowed_formats'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Allowed formats for display'),
+    '#default_value' => variable_get('bibliocommons_allowed_formats', ''),
+    '#size'          => 256,
+    '#maxlength'     => 1024,
+    '#description'   => t('A comma separated list of formats to display from BibliCommons.'),
+    '#required'      => TRUE,
+  );
+  
+  $formats = explode(',', variable_get('bibliocommons_allowed_formats', ''));
+
+  foreach($formats as $format) {
+  
+    $format = trim($format);
+    $filename = strtolower('bibliocommons_no_image_' . $format);
+    $form[$filename] = array(
+    '#type'          => 'file',
+    '#title'         => t('<em>No image available</em> image for '. $format),
+    '#description'   =>'<strong>' . variable_get('bibliocommons_no_image_' . strtolower($format), '') . '</strong>',
+    '#attributes'    => array('multiple' => 'multiple'),
+    );
+  }
+  
+  $form['submit'] = array(
+    '#type' => 'submit', 
+    '#value' => t('Submit'),
+  );
+  
+  return $form;
+}
+
+function bibliocommons_form_validate($form, &$form_state) {
+
+  $formats = explode(',', variable_get('bibliocommons_allowed_formats', ''));
+
+  foreach($formats as $format) {
+    $format = trim($format);
+    $filename = strtolower('bibliocommons_no_image_' . $format);
+      $file = file_save_upload($filename, array(
+        'file_validate_is_image' => array(),
+        'file_validate_extensions' => array('png gif jpg jpeg'),
+        ));
+      // If the file passed validation:
+      if ($file) {
+        // Move the file, into the Drupal file system
+        $destination = file_build_uri('bibliocommons_images');
+        file_prepare_directory($destination, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+
+        if ($file = file_move($file, $destination)) {
+          // Save the file for use in the submit handler.
+          $form_state['storage']['file'][] = $file;
+        }
+        
+      }
+  }
+}
+
+function bibliocommons_form_submit($form, &$form_state) {
+
+  if(isset($form_state['storage'])) {
+    foreach($form_state['storage']['file'] as $f) {
+      variable_set(strtolower($f->source) , $f->uri);
+    }
+  }
+}
+
+/**
+ * Implements hook_views_api()
+ *
+ */
+function bibliocommons_views_api() {
+  return array(
+    'api' => '3.0',
+  );
+}
+
+/**
+ * Implements hook_theme().
+ */
+function bibliocommons_theme($existing, $type, $theme, $path) {
+  return array(
+    'image_style_outside_files' => array(
+   'variables' => array(
+     'style_name' => NULL,
+     'path' => NULL,
+     'alt' => '',
+     'title' => NULL,
+     'attributes' => array(),
+   ),
+ ),
+  );
+}
+
+/**
+ * This theme function is designed to deal with the limitation that
+ * theme_image_style does not work with images outside the files directory.
+ * 
+ * Usage is the same as theme_image_style.
+ * 
+ * @param $variables
+ */
+function theme_image_style_outside_files($variables) {
+  $styled_path = image_style_path($variables['style_name'], $variables['path']);
+  if (!file_exists($styled_path)) {
+    $style = image_style_load($variables['style_name']);
+    image_style_create_derivative($style, $variables['path'], $styled_path);
+  }
+  $variables['path'] = $styled_path;
+  return theme('image', $variables);
+}
